@@ -1,1 +1,1 @@
-# procedural-generation
+# Random math things abd notes
