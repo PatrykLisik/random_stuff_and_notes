@@ -1,1 +1,1 @@
-# Random math things abd notes
+# Random math things and notes
