@@ -17,6 +17,6 @@ def update_progress(progress):
     now = datetime.now()
     current_time = now.strftime("%H:%M:%S")
     clear_output(wait=True)
-    text = "Progress: [{0}] {1:.1f}% - {3}".format("#" * block + "-" * (bar_length - block), progress * 100,
+    text = "Progress: [{0}] {1:.1f}% - {2}".format("#" * block + "-" * (bar_length - block), progress * 100,
                                                    current_time)
     print(text)
