@@ -5,6 +5,16 @@ services:
       - .:/home/jovyan
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: notebook_docker/Dockerfile
     ports:
       - "8888:8888"
+  python:
+    entrypoint:
+      - python
+    build:
+      context: .
+      dockerfile: python_docker/Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app

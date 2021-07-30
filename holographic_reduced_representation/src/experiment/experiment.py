@@ -1,4 +1,5 @@
 import itertools
+import time
 
 import numpy as np
 import pandas as pd
@@ -36,7 +37,7 @@ def _conduct_single_memorize_revive_experiment(memory_length: int, pairs_count: 
     return df2
 
 
-def conduct_experiment(paris_counts, memory_lengths, revive_number):
+def conduct_associative_memory_experiment(paris_counts: list, memory_lengths: list, revive_number: int) -> pd.DataFrame:
     df = pd.DataFrame(columns=[])
     params = list(itertools.product(paris_counts, memory_lengths))
     params_count = len(params)
@@ -44,7 +45,10 @@ def conduct_experiment(paris_counts, memory_lengths, revive_number):
         pairs, memory_len = param
         probe_count = int(np.ceil(revive_number / (2 * pairs)))
         for probe_id in range(probe_count):
+            start_time = time.process_time()
             test_df = _conduct_single_memorize_revive_experiment(memory_len, pairs, generate_perfect_data)
+            elapsed_time = time.process_time() - start_time
+            test_df["elapsed_time"] = elapsed_time
             test_df["probe_id"] = probe_id
             test_df["memorized_pairs"] = pairs
             test_df["memory_length"] = memory_len
