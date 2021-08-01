@@ -2,7 +2,7 @@
 
 ## How to use this project
 
-1. Run tests `docker-compose exec  python pytest`
+1. Run tests `docker-compose run  --entrypoint "pytest" python`
 2. Re-run experiment `docker-compose run python ./run_experiment.py`. It takes a while.
 3. Run jupyter notebook `docker-compose up notebook`.
 
