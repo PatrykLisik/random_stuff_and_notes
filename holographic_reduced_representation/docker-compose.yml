@@ -5,7 +5,7 @@ services:
       - .:/home/jovyan
     build:
       context: .
-      dockerfile: notebook_docker/Dockerfile
+      dockerfile: all_services/notebook_docker/Dockerfile
     ports:
       - "8888:8888"
   python:
@@ -13,7 +13,7 @@ services:
       - python
     build:
       context: .
-      dockerfile: python_docker/Dockerfile
+      dockerfile: all_services/python_docker/Dockerfile
     ports:
       - "8000:8000"
     volumes:
