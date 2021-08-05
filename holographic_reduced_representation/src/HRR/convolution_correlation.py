@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.linalg import norm
 
 
 def circular_convolution(first_array, second_array):
@@ -63,3 +64,14 @@ def circular_correlation_fft(first_array, second_array):
     :return:
     """
     return circular_convolution_fft(involution(first_array), second_array)
+
+
+def cosine_distance(a, b):
+    """
+    Cosine distance between list a and b
+    @param a:
+    @param b:
+    @return:
+    """
+    cos_sim = np.dot(a, b) / (norm(a) * norm(b))
+    return 1 - cos_sim
