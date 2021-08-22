@@ -4,9 +4,6 @@ from .convolution_correlation import circular_correlation_fft as ccor
 from .convolution_correlation import cosine_distance as cos_distance
 
 
-# from scipy.spatial.distance import cosine as cos_distance
-
-
 class Memory:
     """
     Holographic reduced representations abstracted out to class
