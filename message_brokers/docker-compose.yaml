@@ -10,7 +10,7 @@ services:
       - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
     networks:
       - message_broker_net
-  server:
+  sender:
     environment:
       - FLASK_DEBUG=1
       - FLASK_ENV=development
@@ -21,6 +21,19 @@ services:
       - "8000:8000"
     volumes:
       - .:/app
+    networks:
+      - message_broker_net
+    depends_on:
+      - "que"
+  receiver:
+    container_name: reciver
+    volumes:
+      - .:/app
+    command: ["python", "receiver.py"]
+    build:
+      dockerfile: Dockerfile
+    depends_on:
+      - "que"
     networks:
       - message_broker_net
 networks:
