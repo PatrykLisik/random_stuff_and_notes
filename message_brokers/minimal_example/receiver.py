@@ -9,6 +9,9 @@ logging.basicConfig(level=logging.INFO)
 
 
 def callback(ch, method, properties, body):
+    random_exception = random.randint(0, 10)
+    if random_exception==1:
+        raise RuntimeError('You were unlucky')
     logging.info(" [x] Received %r" % body)
     sleep(random.randint(2, 10))
     logging.info(" [x] Processed %r" % body)

@@ -37,6 +37,15 @@ minimal_example-receiver-3  | INFO:root: [x] Processed b'1'
 minimal_example-receiver-3  | INFO:root: [x] Received b'4'
 ```
 
+In this example restart on receiver will pik up task that already have been added to que.  
+Every job has 10% chance to fail. 
+```log
+minimal_example-receiver-3  |     consumer_info.on_message_callback(self, evt.method,
+minimal_example-receiver-3  |   File "/app/receiver.py", line 14, in callback
+minimal_example-receiver-3  |     raise RuntimeError('You were unlucky')
+minimal_example-receiver-3  | RuntimeError: You were unlucky
+```
+After this receiver will restart but will no pick up tasks that are in que. 
 
 
 
