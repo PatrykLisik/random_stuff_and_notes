@@ -26,7 +26,6 @@ services:
     depends_on:
       - "que"
   receiver:
-    container_name: reciver
     volumes:
       - .:/app
     command: ["python", "receiver.py"]
