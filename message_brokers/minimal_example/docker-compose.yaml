@@ -35,6 +35,7 @@ services:
       - "que"
     networks:
       - message_broker_net
+    restart: on-failure
 networks:
    message_broker_net:
      driver: bridge
