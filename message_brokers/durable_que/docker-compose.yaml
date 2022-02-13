@@ -27,8 +27,9 @@ services:
       - "que"
   receiver:
     environment:
-      - TASK_TIME_MIN = 2
-      - TASK_TIME_MAX = 10
+      - TASK_TIME_MIN=1
+      - TASK_TIME_MAX=15
+      - PREFETCH_COUNT=10
     volumes:
       - .:/app
     command: ["python", "receiver.py"]
