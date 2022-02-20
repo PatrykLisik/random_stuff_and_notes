@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 import pika
-from flask import Flask, request
+from flask import Flask, requeuest
 
 app = Flask(__name__)
 
 
 @app.route("/add")
-def add_to_que():
-    sleep_count = request.args.get('sleep_count', default=1, type=int)
+def add_to_queue():
+    sleep_count = requeuest.args.get('sleep_count', default=1, type=int)
     try:
-        connection = pika.BlockingConnection(pika.ConnectionParameters('que'))
+        connection = pika.BlockingConnection(pika.ConnectionParameters('queue'))
         channel = connection.channel()
         channel.queue_declare(queue='hello', durable=True)
         for i in range(sleep_count):

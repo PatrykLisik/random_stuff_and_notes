@@ -37,8 +37,8 @@ def callback(ch, method, properties, body):
 
 
 def start_consumer():
-    logger.info("Connecting to que")
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host='que', blocked_connection_timeout=30))
+    logger.info("Connecting to queue")
+    connection = pika.BlockingConnection(pika.ConnectionParameters(host='queue', blocked_connection_timeout=30))
     channel = connection.channel()
     channel.queue_declare(queue='hello', durable=True)
     channel.basic_qos(prefetch_count=2)
@@ -54,5 +54,5 @@ if __name__ == '__main__':
             logger.info("Consumer starts")
             start_consumer()
         except pika.exceptions.AMQPConnectionError:
-            logger.warning("que unavailable. Sleep for 10s")
+            logger.warning("queue unavailable. Sleep for 10s")
             sleep(10)

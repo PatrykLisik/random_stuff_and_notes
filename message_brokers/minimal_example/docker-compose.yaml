@@ -1,6 +1,6 @@
 version: '3'
 services:
-  que:
+  queue:
     image: rabbitmq:3.9.13
     ports:
       - "5672:5672"
@@ -24,7 +24,7 @@ services:
     networks:
       - message_broker_net
     depends_on:
-      - "que"
+      - "queue"
   receiver:
     volumes:
       - .:/app
@@ -32,7 +32,7 @@ services:
     build:
       dockerfile: Dockerfile
     depends_on:
-      - "que"
+      - "queue"
     networks:
       - message_broker_net
     restart: on-failure

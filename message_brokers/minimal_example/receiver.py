@@ -18,14 +18,14 @@ def callback(ch, method, properties, body):
 
 
 def start_consumer():
-    logging.info("Connecting to que")
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host='que', blocked_connection_timeout=30))
+    logging.info("Connecting to queue")
+    connection = pika.BlockingConnection(pika.ConnectionParameters(host='queue', blocked_connection_timeout=30))
     logging.info("Creating channel")
     channel = connection.channel()
     logging.info("Declare channel")
-    channel.queue_declare(queue='hello')
+    channel.queueue_declare(queueue='hello')
     logging.info("set consumer")
-    channel.basic_consume(queue='hello', on_message_callback=callback, auto_ack=True)
+    channel.basic_consume(queueue='hello', on_message_callback=callback, auto_ack=True)
     logging.info('consuming starts')
     channel.start_consuming()
 

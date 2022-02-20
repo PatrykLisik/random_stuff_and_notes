@@ -1,6 +1,6 @@
 version: '3'
 services:
-  que:
+  queue:
     image: rabbitmq:3.9.13
     ports:
       - "5672:5672"
@@ -9,7 +9,7 @@ services:
       - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
       - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
     networks:
-      - durable_que_net
+      - durable_queue_net
     restart: always
   sender:
     environment:
@@ -23,9 +23,9 @@ services:
     volumes:
       - .:/app
     networks:
-      - durable_que_net
+      - durable_queue_net
     depends_on:
-      - "que"
+      - "queue"
   receiver:
     environment:
       - TASK_TIME_MIN=1
@@ -37,10 +37,10 @@ services:
     build:
       dockerfile: Dockerfile
     depends_on:
-      - "que"
+      - "queue"
     networks:
-      - durable_que_net
+      - durable_queue_net
     restart: always
 networks:
-   durable_que_net:
+   durable_queue_net:
      driver: bridge
