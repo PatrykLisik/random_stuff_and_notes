@@ -1,0 +1,46 @@
+version: '3'
+services:
+  queue:
+    image: rabbitmq:3.9.13
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
+      - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
+    networks:
+      - durable_queue_net
+    restart: always
+  sender:
+    environment:
+      - FLASK_DEBUG=1
+      - FLASK_ENV=development
+    command: flask run --host 0.0.0.0 --port 8000
+    build:
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    networks:
+      - durable_queue_net
+    depends_on:
+      - "queue"
+  receiver:
+    environment:
+      - TASK_TIME_MIN=1
+      - TASK_TIME_MAX=15
+      - PREFETCH_COUNT=10
+    volumes:
+      - .:/app
+    command: ["python", "receiver.py"]
+    build:
+      dockerfile: Dockerfile
+    depends_on:
+      - "queue"
+    networks:
+      - durable_queue_net
+    restart: always
+networks:
+   durable_queue_net:
+     driver: bridge
