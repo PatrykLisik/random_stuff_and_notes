@@ -6,5 +6,6 @@ class ClientPerf(HttpUser):
 
     @task
     def make_request_httpx_async(self):
-        self.client.post("/make_request_httpx_async")
+        response = self.client.post("/make_request_httpx_async")
+        # print(response)
 
