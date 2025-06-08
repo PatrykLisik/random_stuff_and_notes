@@ -19,7 +19,7 @@ func TSQueryCode(query string, lang *tree_sitter.Language, code []byte, root_nod
 
 	result := make([][]tree_sitter.Node, 0)
 	if query_error != nil {
-		logger.Error("Query to failed to parse. Returniug empty list","error", query_error)
+		logger.Error("Query to failed to parse. Returniug empty list", "error", query_error)
 		return result
 	}
 	query_c := tree_sitter.NewQueryCursor()
@@ -43,9 +43,9 @@ func codeUnderNode(node *tree_sitter.Node, code []byte) string {
 	return string(code[start:end])
 }
 
-func (server *Server) InitialAnalysis(init_request InitializeRequest, ctx context.Context) {
+func filesToAnalyze(init_request InitializeRequest) ([]string, []string) {
 	pythonFiles := make([]string, 0, 200)
-	configMapFilePath := ""
+	ymalFiles := make([]string, 0, 200)
 
 	fs.WalkDir(os.DirFS(init_request.Params.RootPath), ".", func(p string, d os.DirEntry, err error) error {
 		if d.Type().IsRegular() {
@@ -57,39 +57,49 @@ func (server *Server) InitialAnalysis(init_request InitializeRequest, ctx contex
 			}
 
 			if extension == ".yaml" {
-				server.Logger.Info("Walkig root", "current path", full_path, "extension", extension)
-				_, fileanme := path.Split(full_path)
-				if fileanme == "configmap.yaml" {
-					configMapFilePath = full_path
-				}
+				ymalFiles = append(ymalFiles, full_path)
 			}
 		}
 		return nil
 	})
+	return pythonFiles, ymalFiles
+}
 
-	server.Logger.Info("Config", "file", configMapFilePath)
-	code_yaml, err := os.ReadFile(configMapFilePath)
+func addYamlDocument(server *Server, ctx context.Context, path string) (*lsp_db.Document, error) {
+	code_yaml, err := os.ReadFile(path)
 	if err != nil {
-		server.Logger.Error("Error while reading config file", "error", err, "path", configMapFilePath)
-		panic(2)
+		server.Logger.Error("Error while reading yaml file", "error", err, "path", path)
+		return nil, err
 	}
 
 	yaml_tree := server.YamlParser.Parse(code_yaml, nil)
 
 	server.Trees = append(server.Trees, yaml_tree)
-	tree_id := len(server.Trees)
+	tree_id := len(server.Trees) - 1
 
 	yaml_doc, err := server.Queries.InsertDocument(ctx, lsp_db.InsertDocumentParams{
-		Path:   configMapFilePath,
+		Path:   path,
 		TreeID: int64(tree_id),
 		Code:   string(code_yaml),
 	})
 	if err != nil {
 		server.Logger.Error("Error during insertin document", "err", err, "path", yaml_doc)
+		return nil, fmt.Errorf("Error during insertin document")
 	}
+	return &yaml_doc, nil
+}
 
-	yaml_envs := FindEnvsConfigYAML(server.Yaml, code_yaml, yaml_tree.RootNode(), server.Logger)
-	server.Logger.Info("Envs", "found", yaml_envs)
+func upsertYamlEnvsFromDoc(server *Server, ctx context.Context, yamlDoc *lsp_db.Document) {
+	yaml_envs := FindEnvsConfigYAML(server.Yaml, []byte(yamlDoc.Code), server.Trees[yamlDoc.TreeID].RootNode(), server.Logger)
+	// server.Logger.Info("Envs", "found", yaml_envs)
+
+	err := server.Queries.DeleteYamlEnvByDocID(ctx, sql.NullInt64{
+		Int64: yamlDoc.ID,
+		Valid: true,
+	})
+	if err != nil {
+		server.Logger.Error("Error duing deleing old ymal envs", "err", err)
+	}
 
 	for _, env := range yaml_envs {
 		err = server.Queries.InsertYamlEnv(ctx, lsp_db.InsertYamlEnvParams{
@@ -107,7 +117,7 @@ func (server *Server) InitialAnalysis(init_request InitializeRequest, ctx contex
 				Valid: true,
 			},
 			YamlDocumentID: sql.NullInt64{
-				Int64: yaml_doc.ID,
+				Int64: yamlDoc.ID,
 				Valid: true,
 			},
 		})
@@ -115,71 +125,103 @@ func (server *Server) InitialAnalysis(init_request InitializeRequest, ctx contex
 			server.Logger.Error("Error during insertion of yaml env", "err", err)
 		}
 	}
+}
 
-	for _, file_path := range pythonFiles {
+func addPythonDocument(server *Server, ctx context.Context, path string) (*lsp_db.Document, error) {
+	code_python, err := os.ReadFile(path)
+	if err != nil {
+		server.Logger.Error("Error while reading Python file", "error", err, "path", path)
+		panic(err)
+	}
 
-		code_python, err := os.ReadFile(file_path)
-		if err != nil {
-			server.Logger.Error("Error while reading Python file", "error", err, "path", file_path)
-			panic(err)
-		}
+	tree := server.PythonParser.Parse(code_python, nil)
+	server.Trees = append(server.Trees, tree)
+	tree_id := len(server.Trees) - 1
 
-		tree := server.PythonParser.Parse(code_python, nil)
-		server.Trees = append(server.Trees, tree)
-		tree_id := len(server.Trees)
-		envs := server.FindPythonEnvs(file_path, code_python, *tree.RootNode())
-		server.Logger.Info("Python parsed", "Envs", envs, "file_path", file_path)
+	doc, err := server.Queries.InsertDocument(ctx, lsp_db.InsertDocumentParams{
+		Path:   path,
+		TreeID: int64(tree_id),
+		Code:   string(code_python),
+	})
+	if err != nil {
+		server.Logger.Error("error during insertin document", "err", err, "path", path)
+		return nil, err
+	}
+	return &doc, nil
+}
 
-		doc, err := server.Queries.InsertDocument(ctx, lsp_db.InsertDocumentParams{
-			Path:   file_path,
-			TreeID: int64(tree_id),
-			Code:   string(code_python),
+func upsertPythonEnvs(server *Server, ctx context.Context, doc *lsp_db.Document) {
+	envs := findPythonEnvs(server, []byte(doc.Code), server.Trees[doc.TreeID].RootNode())
+	// server.Logger.Info("Python parsed", "Envs", envs, "file_path", doc.Path)
+
+	err := server.Queries.DeletePyEnvByDocID(ctx, sql.NullInt64{
+		Int64: doc.ID,
+		Valid: true,
+	})
+	if err != nil {
+		server.Logger.Error("Error duing deleing old python evs", "err", err)
+	}
+
+	for _, env := range envs {
+		err := server.Queries.InsertPyEnv(ctx, lsp_db.InsertPyEnvParams{
+			PyName: sql.NullString{
+				String: env.PythonName,
+				Valid:  true,
+			},
+			OsName: env.OSName,
+			PyRow: sql.NullInt64{
+				Int64: int64(env.OSNameLoc.FileLocation.Row),
+				Valid: true,
+			},
+			PyStartColumn: sql.NullInt64{
+				Int64: int64(env.OSNameLoc.FileLocation.Col),
+				Valid: true,
+			},
+			PyEndColumn: sql.NullInt64{
+				Int64: int64(env.OSNameLoc.FileLocation.Col + uint(len(env.OSName))),
+				Valid: true,
+			},
+			PyDocumentID: sql.NullInt64{
+				Int64: int64(doc.ID),
+				Valid: true,
+			},
 		})
 		if err != nil {
-			server.Logger.Error("Error during insertin document", "err", err, "path", file_path)
+			server.Logger.Error("Error during  insertion of env", "err", err)
+			break
 		}
+	}
+}
 
-		for _, env := range envs {
-			err = server.Queries.InsertPyEnv(ctx, lsp_db.InsertPyEnvParams{
-				PyName: sql.NullString{
-					String: env.PythonName,
-					Valid:  true,
-				},
-				OsName: env.OSName,
-				PyRow: sql.NullInt64{
-					Int64: int64(env.OSNameLoc.FileLocation.Row),
-					Valid: true,
-				},
-				PyStartColumn: sql.NullInt64{
-					Int64: int64(env.OSNameLoc.FileLocation.Col),
-					Valid: true,
-				},
-				PyEndColumn: sql.NullInt64{
-					Int64: int64(env.OSNameLoc.FileLocation.Col + uint(len(env.OSName))),
-					Valid: true,
-				},
-				PyDocumentID: sql.NullInt64{
-					Int64: int64(doc.ID),
-					Valid: true,
-				},
-			})
-			if err != nil {
-				server.Logger.Error("Error during  insertion of env", "err", err)
-				break
-			}
+func (server *Server) InitialAnalysis(init_request InitializeRequest, ctx context.Context) {
+	pythonFiles, ymalFiles := filesToAnalyze(init_request)
+
+	for _, yamlfile := range ymalFiles {
+		doc, err := addYamlDocument(server, ctx, yamlfile)
+		if err != nil {
+			server.Logger.Error("Error adding file", "err", err, "file", yamlfile)
+			continue
 		}
+		upsertYamlEnvsFromDoc(server, ctx, doc)
+	}
+
+	for _, file_path := range pythonFiles {
+		doc, err := addPythonDocument(server, ctx, file_path)
+		if err != nil {
+			continue
+		}
+		upsertPythonEnvs(server, ctx, doc)
 
 	}
 }
 
-func (server *Server) FindPythonEnvs(uri string, code []byte, root_node tree_sitter.Node) []PyEnvVariable {
-	// server.Documents = append(server.Envs, Env{})
+func findPythonEnvs(server *Server, code []byte, root_node *tree_sitter.Node) []PyEnvVariable {
 	new_envs := make([]PyEnvVariable, 0, 100)
 	for _, query := range FindPyEnvsQueries {
-		env_ := FindPyEnvs(server.Python, code, &root_node, query, server.Logger)
+		env_ := FindPyEnvs(server.Python, code, root_node, query, server.Logger)
 		server.Logger.Debug("Env", "envs:", env_, "query", query)
 		new_envs = append(new_envs, env_...)
-		server.Logger.Debug("FindPythonEnvs new_envs: ","new_envs", new_envs)
+		server.Logger.Debug("FindPythonEnvs new_envs: ", "new_envs", new_envs)
 	}
 	return new_envs
 }

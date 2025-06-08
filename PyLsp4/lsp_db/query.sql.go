@@ -10,6 +10,40 @@ import (
 	"database/sql"
 )
 
+const deletePyEnvByDocID = `-- name: DeletePyEnvByDocID :exec
+DELETE FROM PyEnv WHERE py_document_id=?
+`
+
+func (q *Queries) DeletePyEnvByDocID(ctx context.Context, pyDocumentID sql.NullInt64) error {
+	_, err := q.db.ExecContext(ctx, deletePyEnvByDocID, pyDocumentID)
+	return err
+}
+
+const deleteYamlEnvByDocID = `-- name: DeleteYamlEnvByDocID :exec
+DELETE FROM YamlEnv WHERE yaml_document_id=?
+`
+
+func (q *Queries) DeleteYamlEnvByDocID(ctx context.Context, yamlDocumentID sql.NullInt64) error {
+	_, err := q.db.ExecContext(ctx, deleteYamlEnvByDocID, yamlDocumentID)
+	return err
+}
+
+const getDocumentByPath = `-- name: GetDocumentByPath :one
+SELECT id, path, tree_id, code FROM Document WHERE path=?
+`
+
+func (q *Queries) GetDocumentByPath(ctx context.Context, path string) (Document, error) {
+	row := q.db.QueryRowContext(ctx, getDocumentByPath, path)
+	var i Document
+	err := row.Scan(
+		&i.ID,
+		&i.Path,
+		&i.TreeID,
+		&i.Code,
+	)
+	return i, err
+}
+
 const insertDocument = `-- name: InsertDocument :one
 INSERT INTO Document(path, tree_id, code) VALUES(?, ?, ?) RETURNING id, path, tree_id, code
 `
@@ -33,7 +67,7 @@ func (q *Queries) InsertDocument(ctx context.Context, arg InsertDocumentParams) 
 }
 
 const insertPyEnv = `-- name: InsertPyEnv :exec
-INSERT INTO PyEnv(py_name, os_name,py_row, py_start_column, py_end_column, py_document_id) VALUES(?, ?,?,?,?,?) ON CONFLICT(os_name) DO NOTHING
+INSERT INTO PyEnv(py_name, os_name,py_row, py_start_column, py_end_column, py_document_id) VALUES(?,?,?,?,?,?)
 `
 
 type InsertPyEnvParams struct {
@@ -58,7 +92,7 @@ func (q *Queries) InsertPyEnv(ctx context.Context, arg InsertPyEnvParams) error 
 }
 
 const insertYamlEnv = `-- name: InsertYamlEnv :exec
-INSERT INTO YamlEnv( os_name,yaml_row, yaml_start_column, yaml_end_column, yaml_document_id) VALUES(?,?,?,?,?)ON CONFLICT(os_name) DO NOTHING
+INSERT INTO YamlEnv( os_name,yaml_row, yaml_start_column, yaml_end_column, yaml_document_id) VALUES(?,?,?,?,?)
 `
 
 type InsertYamlEnvParams struct {
@@ -131,4 +165,18 @@ func (q *Queries) SelectYamlEnvByName(ctx context.Context, osName string) (Selec
 		&i.Path,
 	)
 	return i, err
+}
+
+const updateDocumentCode = `-- name: UpdateDocumentCode :exec
+UPDATE document SET code=? WHERE id=?
+`
+
+type UpdateDocumentCodeParams struct {
+	Code string
+	ID   int64
+}
+
+func (q *Queries) UpdateDocumentCode(ctx context.Context, arg UpdateDocumentCodeParams) error {
+	_, err := q.db.ExecContext(ctx, updateDocumentCode, arg.Code, arg.ID)
+	return err
 }

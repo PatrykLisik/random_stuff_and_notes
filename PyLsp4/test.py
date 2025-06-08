@@ -13,8 +13,10 @@ ENV_2_0 = environ["ENV_2_0"]
 ENV_2_3 = environ.get("ENV_2_3")
 cpu = os.cpu_count()
 
+
 ENV_2_1 = os.environ.get("ENV_2_1")
 
+ENV_2_2 = os.environ.get("ENV_2_2")
 
 def on_ok(
     a,

@@ -111,6 +111,15 @@ func (server *Server) handleMessage(method string, msg []byte, ctx context.Conte
 		return nil, nil
 	case "textDocument/didOpen":
 		break
+	case "textDocument/didChange":
+		var request DidChangeRequest
+		err := json.Unmarshal(msg, &request)
+		if err != nil {
+			server.Logger.Error("Cannon parse textDocument/didChange", "error", err)
+			return nil, err
+		}
+		server.Logger.Info("Did change", "request", request)
+		return nil, server.updateDocument(request, ctx)
 	case "textDocument/definition":
 		var request DefinitionRequest
 		err := json.Unmarshal(msg, &request)

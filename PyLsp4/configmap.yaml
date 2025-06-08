@@ -7,14 +7,13 @@ metadata:
   resourceVersion: "516"
   uid: b4952dc3-d670-11e5-8cd0-68f728db1985
 data:
-  ENV_1_os: "{{ }}"
-
-  ENV_2_os: "{{ }}"
+  ENV_1_os: "{{   }}"
   ENV_2_3: "{{ }}"
 
   ENV_2_0: "{{ }}"
-
   ENV_2_1: "{{ }}"
+  ENV_2_2: "{{ }}"
+
   ENV_3: "{{ }}"
   ENV_4: "{{ }}"
   ENV_5: "{{ }}"
@@ -27,3 +26,5 @@ data:
   ENV_6_1: "{{ }}"
   ENV_7: "{{ }}"
   ENV_7_1: "{{ }}"
+
+  ENV_2_os: "{{ }}"

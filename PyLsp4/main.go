@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	loggerFilePath := "/home/plisik/Proj/PyGoLspTest/lsp.log"
+	loggerFilePath := "./lsp.log"
 	LSP := lsp.NewLsp(loggerFilePath)
 	LSP.Logger.Info("PyuGoLSP staring ...")
 	LSP.Run()
